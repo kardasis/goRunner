@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/stianeikeland/go-rpio/v4"
 )
 
 // State is the state
@@ -33,42 +30,16 @@ func addTick(run *Run, timestamp time.Time) {
 	run.Ticks = append(run.Ticks, Tick{timestamp})
 }
 
-func tickListen(c chan time.Time, pin rpio.Pin) {
-	for i := 0; i < 10; i++ {
-		//////////////////////////////////////////////////
-		///////  FAKE
-		//////////////////////////////////////////////////
-		time.Sleep(500 * time.Millisecond)
-		c <- time.Now()
-	}
-}
-
 func main() {
 	godotenv.Load()
+	eventChan := make(chan runEvent)
 
-	c := make(chan time.Time)
-	if err := rpio.Open(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	// Unmap gpio memory when done
-	defer rpio.Close()
-	pin := rpio.Pin(10)
-	pin.Input() // Input mode
-
-	var run Run
-
-	go tickListen(c, pin)
+	go eventListen(eventChan)
 	for {
-		timestamp := <-c
-		switch state {
-		case Running:
-			addTick(&run, timestamp)
-			state = NotRunning
-		case NotRunning:
-			run = newRun()
-			state = Running
+		event := <-eventChan
+		switch event.eventType {
+		case "tick":
+		case "timeout":
 		}
 	}
 	// putRunToS3(run)
